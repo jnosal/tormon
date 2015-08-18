@@ -8,6 +8,13 @@ class IBaseWriter(object):
     def write(self, url, response):
         pass
 
+    def get_response_data(self, response):
+        return {
+            'code': response.code,
+            'time': response.request_time,
+            'headers': response.headers
+        }
+
 
 class MemoryWriter(IBaseWriter):
 
@@ -15,4 +22,5 @@ class MemoryWriter(IBaseWriter):
         self.url_status = {}
 
     def write(self, url, response):
-        self.url_status[url] = response
+        data = self.get_response_data(response=response)
+        self.url_status[url] = data

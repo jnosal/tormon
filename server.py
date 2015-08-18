@@ -44,7 +44,10 @@ if __name__ == '__main__':
     ))
     server.listen(settings.PORT, settings.HOST)
 
-    monitor = client.WebMonitor(filename=u'/tmp/a.txt')
+    monitor = client.WebMonitor(
+        reader='file', writer='memory',
+        filename=u'/tmp/a.txt'
+    )
     monitor.start()
 
     shutdown_handler = lambda sig, frame: shutdown(server, monitor)

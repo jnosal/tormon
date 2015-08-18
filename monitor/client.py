@@ -7,8 +7,10 @@ import tornado.gen
 from tornado import ioloop
 from tornado.httpclient import AsyncHTTPClient
 
+from . import exceptions
 from . import readers
 from . import writers
+from . import utils
 
 
 class IBaseMonitor(object):
@@ -27,10 +29,10 @@ class IBaseMonitor(object):
         pass
 
     def start(self, *args, **kwargs):
-        self.reader = self.get_source_instance()
-        self.writer = self.get_output_instance()
+        self.reader_instance = self.get_source_instance()
+        self.writer_instance = self.get_output_instance()
 
-        for url in self.reader.read():
+        for url in self.reader_instance.read():
             logging.info(u'Starting monitor: {}'.format(url))
             self.monitor(url=url)
 
@@ -40,21 +42,45 @@ class IBaseMonitor(object):
 
 class WebMonitor(IBaseMonitor):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, reader='file', writer='memory', *args, **kwargs):
+        self.reader = reader
+        self.writer = writer
         self.kwargs = kwargs
         self.client = AsyncHTTPClient()
 
     def get_source_instance(self):
-        return readers.TextFileReader(**self.kwargs)
+        class_map = {
+            utils.FILE_READER: readers.TextFileReader
+        }
+
+        try:
+            Reader = class_map[self.reader]
+            return Reader(**self.kwargs)
+        except KeyError:
+            msg = u"Inappropriate reader. Allowed: {0}.".format(
+                u", ".join(utils.ALLOWED_READERS)
+            )
+            raise exceptions.ConfigurationException(msg)
 
     def get_output_instance(self):
-        return writers.MemoryWriter(**self.kwargs)
+        class_map = {
+            utils.MEMORY_WRITER: writers.MemoryWriter
+        }
+
+        try:
+            Writer = class_map[self.writer]
+            return Writer(**self.kwargs)
+        except KeyError:
+            msg = u"Inappropriate writer. Allowed: {0}.".format(
+                u", ".join(utils.ALLOWED_WRITERS)
+            )
+            raise exceptions.ConfigurationException(msg)
 
     @tornado.gen.engine
     def monitor(self, url):
         logging.info(u"Sending request to {}".format(url))
         response = yield tornado.gen.Task(self.client.fetch, url)
-        self.writer.write(url=url, response=response)
+        self.writer_instance.write(url=url, response=response)
 
         cb = lambda: self.monitor(url=url)
         deadline = time.time() + random.randint(0, 15)
