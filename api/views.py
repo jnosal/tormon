@@ -51,5 +51,8 @@ class UrlDetailsHandler(BaseApiHandler):
             info = self.application.monitor.get_info(url=url)
             self.response({'response': info}, 200)
         except KeyError:
-            error = u"Url: {} is not monitored".format(url)
+            error = (
+                u"Url: {} is not monitored. Perhaps slash is missing"
+                u" or is redundant."
+            ).format(url)
             self.response({'error': error}, 400)
