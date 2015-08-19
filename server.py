@@ -10,12 +10,14 @@ from tornado.options import parse_command_line
 
 import settings
 from monitor import client
+from api import urls
 
 
 class MonitorWebApplication(tornado.web.Application):
 
-    def __init__(self, **kwargs):
-        handlers = []
+    def __init__(self, monitor, **kwargs):
+        handlers = urls.urlpatterns
+        self.monitor = monitor
         tornado.web.Application.__init__(self, handlers, **kwargs)
 
 
@@ -36,7 +38,15 @@ def shutdown(server_instance, monitor_instance):
 if __name__ == '__main__':
     parse_command_line()
 
-    application = MonitorWebApplication(debug=settings.DEBUG)
+    monitor = client.WebMonitor(
+        reader='file',
+        writer='memory',
+        filename=u'/tmp/a.txt'
+    )
+    application = MonitorWebApplication(
+        monitor=monitor,
+        debug=settings.DEBUG
+    )
     server = HTTPServer(application)
 
     logging.info(u"Starting APP-MONITOR on {0}:{1}.".format(
@@ -44,10 +54,6 @@ if __name__ == '__main__':
     ))
     server.listen(settings.PORT, settings.HOST)
 
-    monitor = client.WebMonitor(
-        reader='file', writer='memory',
-        filename=u'/tmp/a.txt'
-    )
     monitor.start()
 
     shutdown_handler = lambda sig, frame: shutdown(server, monitor)
