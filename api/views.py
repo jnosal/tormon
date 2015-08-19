@@ -36,9 +36,9 @@ class UrlsListHandler(BaseApiHandler):
             for url, response
             in self.application.monitor.iter_urls()
         ]
-        objects = sorted(
-            objects, key=lambda x: x['response']['updated_at'], reverse=True
-        )
+        # objects = sorted(
+        #     objects, key=lambda x: x['response']['updated_at'], reverse=True
+        # )
         self.response({'objects': objects}, 200)
 
 

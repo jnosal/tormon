@@ -6,12 +6,21 @@ import tornado.ioloop
 import tornado.web
 from tornado.ioloop import IOLoop
 from tornado.httpserver import HTTPServer
-from tornado.options import parse_command_line
+from tornado.options import define, options
 
 import settings
 from monitor import client
 from api import urls as api_urls
 from web import urls as web_urls
+
+
+BLOCKING_THRESHOLD = 0.5
+define("reader", default="file", help="Name of reader that's used to provide urls")
+define("writer", default="memory", help="Name of writer that's persisting urls")
+define('filename', default=None, help="Path to file, required by file reader")
+define("host", default="localhost")
+define("port", default=8081, type=int)
+define("debug", default=True, type=bool)
 
 
 class MonitorWebApplication(tornado.web.Application):
@@ -37,30 +46,35 @@ def shutdown(server_instance, monitor_instance):
 
 
 if __name__ == '__main__':
-    parse_command_line()
+    options.parse_command_line()
 
     monitor = client.WebMonitor(
-        reader='file',
-        writer='memory',
-        filename=u'/tmp/a.txt'
+        reader=options['reader'],
+        writer=options['writer'],
+        filename=options['filename']
     )
     application = MonitorWebApplication(
         monitor_instance=monitor,
-        debug=settings.DEBUG,
+        debug=options['debug'],
         static_path=settings.STATIC_ROOT,
         template_path=settings.TEMPLATE_ROOT
     )
     server = HTTPServer(application)
 
     logging.info(u"Starting APP-MONITOR on {0}:{1}.".format(
-        settings.HOST, settings.PORT
+        options['host'], options['port']
     ))
-    server.listen(settings.PORT, settings.HOST)
-
-    monitor.start()
 
     shutdown_handler = lambda sig, frame: shutdown(server, monitor)
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
 
+    if options['debug']:
+        logging.info(u"Setting blocking threshold to: {}".format(
+            BLOCKING_THRESHOLD
+        ))
+        IOLoop.instance().set_blocking_log_threshold(BLOCKING_THRESHOLD)
+
+    server.listen(options['port'], options['host'])
+    monitor.start()
     IOLoop.instance().start()
