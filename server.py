@@ -16,9 +16,9 @@ from web import urls as web_urls
 
 class MonitorWebApplication(tornado.web.Application):
 
-    def __init__(self, monitor, **kwargs):
+    def __init__(self, monitor_instance, **kwargs):
         handlers = api_urls.urlpatterns + web_urls.urlpatterns
-        self.monitor = monitor
+        self.monitor = monitor_instance
         tornado.web.Application.__init__(self, handlers, **kwargs)
 
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         filename=u'/tmp/a.txt'
     )
     application = MonitorWebApplication(
-        monitor=monitor,
+        monitor_instance=monitor,
         debug=settings.DEBUG,
         static_path=settings.STATIC_ROOT,
         template_path=settings.TEMPLATE_ROOT

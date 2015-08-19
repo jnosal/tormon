@@ -1,8 +1,6 @@
 import abc
 from datetime import datetime
 
-UPDATED_AT_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
-
 
 class IBaseWriter(object):
     __metaclass__ = abc.ABCMeta
@@ -25,7 +23,7 @@ class IBaseWriter(object):
 
     @property
     def updated_at(self):
-        return datetime.now().strftime(UPDATED_AT_DATE_FORMAT)
+        return datetime.now()
 
     def get_response_data(self, response):
         return {

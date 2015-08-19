@@ -1,6 +1,6 @@
-import json
-
 import tornado.web
+
+from . import utils
 
 
 class BaseApiHandler(tornado.web.RequestHandler):
@@ -11,7 +11,7 @@ class BaseApiHandler(tornado.web.RequestHandler):
             # JSON response
             data['status'] = code
 
-        self.write(json.dumps(data) + "\n")
+        self.write(utils.json_dumps(data) + "\n")
         self.set_status(code)
 
     def error(self, message, code=500):
@@ -36,6 +36,9 @@ class UrlsListHandler(BaseApiHandler):
             for url, response
             in self.application.monitor.iter_urls()
         ]
+        objects = sorted(
+            objects, key=lambda x: x['response']['updated_at'], reverse=True
+        )
         self.response({'objects': objects}, 200)
 
 

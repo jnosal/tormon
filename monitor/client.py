@@ -13,10 +13,14 @@ from . import writers
 from . import utils
 
 
+AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
+
+
 class IBaseMonitor(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs):
+        self.client = None
         self.reader_instance = None
         self.writer_instance = None
 
@@ -32,6 +36,9 @@ class IBaseMonitor(object):
     def monitor(self, url):
         pass
 
+    def get_client_instance(self):
+        return AsyncHTTPClient(max_clients=1000)
+
     def iter_urls(self):
         return iter(self.writer_instance)
 
@@ -44,6 +51,7 @@ class IBaseMonitor(object):
     def start(self, *args, **kwargs):
         self.reader_instance = self.get_reader_instance()
         self.writer_instance = self.get_writer_instance()
+        self.client = self.get_client_instance()
 
         for url in self.reader_instance.read():
             logging.info(u'Starting monitor: {}'.format(url))
@@ -60,7 +68,6 @@ class WebMonitor(IBaseMonitor):
         self.reader = reader
         self.writer = writer
         self.kwargs = kwargs
-        self.client = AsyncHTTPClient()
 
     def get_reader_instance(self):
         class_map = {
