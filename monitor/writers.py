@@ -1,4 +1,7 @@
 import abc
+from datetime import datetime
+
+UPDATED_AT_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class IBaseWriter(object):
@@ -20,11 +23,16 @@ class IBaseWriter(object):
     def get_stats(self):
         pass
 
+    @property
+    def updated_at(self):
+        return datetime.now().strftime(UPDATED_AT_DATE_FORMAT)
+
     def get_response_data(self, response):
         return {
             'code': response.code,
             'time': response.request_time,
-            'headers': response.headers
+            'headers': response.headers,
+            'updated_at': self.updated_at
         }
 
 

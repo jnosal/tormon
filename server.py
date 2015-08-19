@@ -10,13 +10,14 @@ from tornado.options import parse_command_line
 
 import settings
 from monitor import client
-from api import urls
+from api import urls as api_urls
+from web import urls as web_urls
 
 
 class MonitorWebApplication(tornado.web.Application):
 
     def __init__(self, monitor, **kwargs):
-        handlers = urls.urlpatterns
+        handlers = api_urls.urlpatterns + web_urls.urlpatterns
         self.monitor = monitor
         tornado.web.Application.__init__(self, handlers, **kwargs)
 
@@ -45,7 +46,9 @@ if __name__ == '__main__':
     )
     application = MonitorWebApplication(
         monitor=monitor,
-        debug=settings.DEBUG
+        debug=settings.DEBUG,
+        static_path=settings.STATIC_ROOT,
+        template_path=settings.TEMPLATE_ROOT
     )
     server = HTTPServer(application)
 

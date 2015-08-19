@@ -1,0 +1,33 @@
+{% extends 'layouts/base.html' %}
+
+
+{% block content %}
+    <table id="url-status-list" class="bordered striped responsive-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th data-field="url">Url</th>
+                <th data-field="status_code">Status Code</th>
+                <th data-field="response_time">Response Time</th>
+                <th data-field="last_update">Last Update</th>
+            </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+
+
+    <script type="text/template" id="url-status-list-tbody-template">
+        <% _.each(objects, function(item, index) { %>
+            <tr>
+                <td><%= index+1 %></td>
+                <td><%= item.url %></td>
+                <td><%= item.response.code %></td>
+                <td><%= item.response.time.toFixed(4) %> s</td>
+                <td><%= item.response.updated_at %></td>
+            </tr>
+        <% }); %>
+    </script>
+{% end %}
+
