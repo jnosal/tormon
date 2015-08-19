@@ -7,12 +7,15 @@ import tornado.web
 from tornado.ioloop import IOLoop
 from tornado.httpserver import HTTPServer
 from tornado.options import define, options
+from tornado.httpclient import AsyncHTTPClient
 
 import settings
 from monitor import client
 from api import urls as api_urls
 from web import urls as web_urls
 
+
+AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 
 BLOCKING_THRESHOLD = 0.5
 define("reader", default="file", help="Name of reader that's used to provide urls")

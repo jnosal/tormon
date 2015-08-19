@@ -13,9 +13,6 @@ from . import writers
 from . import utils
 
 
-AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
-
-
 class IBaseMonitor(object):
     __metaclass__ = abc.ABCMeta
 
@@ -54,7 +51,7 @@ class IBaseMonitor(object):
         self.client = self.get_client_instance()
 
         for url in self.reader_instance.read():
-            logging.info(u'Starting monitor: {}'.format(url))
+            logging.info(u'{} - starting monitoring'.format(url))
             self.monitor(url=url)
 
     def stop(self, *args, **kwargs):
@@ -78,7 +75,7 @@ class WebMonitor(IBaseMonitor):
             Reader = class_map[self.reader]
             return Reader(**self.kwargs)
         except KeyError:
-            msg = u"Inappropriate reader. Allowed: {0}.".format(
+            msg = u"Inappropriate reader. Allowed: {0}".format(
                 u", ".join(utils.ALLOWED_READERS)
             )
             raise exceptions.ConfigurationException(msg)
@@ -92,14 +89,14 @@ class WebMonitor(IBaseMonitor):
             Writer = class_map[self.writer]
             return Writer(**self.kwargs)
         except KeyError:
-            msg = u"Inappropriate writer. Allowed: {0}.".format(
+            msg = u"Inappropriate writer. Allowed: {0}".format(
                 u", ".join(utils.ALLOWED_WRITERS)
             )
             raise exceptions.ConfigurationException(msg)
 
     @tornado.gen.engine
     def monitor(self, url):
-        logging.info(u"Sending request to {}".format(url))
+        logging.info(u"Sending request to: {}".format(url))
         response = yield tornado.gen.Task(self.client.fetch, url)
         self.writer_instance.write(url=url, response=response)
 
