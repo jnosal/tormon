@@ -36,14 +36,20 @@ class IBaseMonitor(object):
     def get_client_instance(self):
         return AsyncHTTPClient(max_clients=1000)
 
-    def iter_urls(self):
-        return iter(self.writer_instance)
+    @tornado.gen.coroutine
+    def iter_urls(self, *args, **kwargs):
+        data = yield tornado.gen.Task(self.writer_instance.iter_data)
+        raise tornado.gen.Return(data)
 
+    @tornado.gen.coroutine
     def get_info(self, url):
-        return self.writer_instance.get_info(url=url)
+        data = yield tornado.gen.Task(self.writer_instance.get_info, url)
+        raise tornado.gen.Return(data)
 
+    @tornado.gen.coroutine
     def get_stats(self):
-        return self.writer_instance.get_stats()
+        data = yield tornado.gen.Task(self.writer_instance.get_stats)
+        raise tornado.gen.Return(data)
 
     def start(self, *args, **kwargs):
         self.reader_instance = self.get_reader_instance()
@@ -68,7 +74,7 @@ class WebMonitor(IBaseMonitor):
 
     def get_reader_instance(self):
         class_map = {
-            utils.FILE_READER: readers.TextFileReader
+            utils.FILE_READER: readers.TextFileReader,
         }
 
         try:
@@ -82,7 +88,8 @@ class WebMonitor(IBaseMonitor):
 
     def get_writer_instance(self):
         class_map = {
-            utils.MEMORY_WRITER: writers.MemoryWriter
+            utils.MEMORY_WRITER: writers.MemoryWriter,
+            utils.REDIS_WRITER: writers.RedisWriter
         }
 
         try:
@@ -94,10 +101,10 @@ class WebMonitor(IBaseMonitor):
             )
             raise exceptions.ConfigurationException(msg)
 
-    @tornado.gen.engine
+    @tornado.gen.coroutine
     def monitor(self, url):
         logging.info(u"Sending request to: {}".format(url))
-        response = yield tornado.gen.Task(self.client.fetch, url)
+        response = yield self.client.fetch(url)
         self.writer_instance.write(url=url, response=response)
 
         cb = lambda: self.monitor(url=url)

@@ -1,4 +1,5 @@
 import tornado.web
+import tornado.gen
 
 from . import utils
 
@@ -23,32 +24,33 @@ class BaseApiHandler(tornado.web.RequestHandler):
 
 class StatsHandler(BaseApiHandler):
 
+    @tornado.gen.coroutine
     def get(self, *args, **kwargs):
-        stats = self.application.monitor.get_stats()
-        return self.response({'stats': stats}, 200)
+        stats = yield self.application.monitor.get_stats()
+        self.response({'stats': stats}, 200)
 
 
 class UrlsListHandler(BaseApiHandler):
 
+    @tornado.gen.coroutine
     def get(self, *args, **kwargs):
+        data = yield self.application.monitor.iter_urls()
         objects = [
             dict(url=url, response=response)
             for url, response
-            in self.application.monitor.iter_urls()
+            in data
         ]
-        # objects = sorted(
-        #     objects, key=lambda x: x['response']['updated_at'], reverse=True
-        # )
         self.response({'objects': objects}, 200)
 
 
 class UrlDetailsHandler(BaseApiHandler):
 
+    @tornado.gen.coroutine
     def get(self, *args, **kwargs):
         url = self.get_argument('url', None)
 
         try:
-            info = self.application.monitor.get_info(url=url)
+            info = yield self.application.monitor.get_info(url)
             self.response({'response': info}, 200)
         except KeyError:
             error = (

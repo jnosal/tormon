@@ -9,3 +9,7 @@ def handler_(obj):
 
 def json_dumps(data):
     return json.dumps(data, default=handler_)
+
+
+def json_loads(data):
+    return json.loads(data)
