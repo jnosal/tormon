@@ -104,7 +104,7 @@ class WebMonitor(IBaseMonitor):
     @tornado.gen.coroutine
     def monitor(self, url):
         logging.info(u"Sending request to: {}".format(url))
-        response = yield self.client.fetch(url)
+        response = yield self.client.fetch(url, method='HEAD')
         self.writer_instance.write(url=url, response=response)
 
         cb = lambda: self.monitor(url=url)
