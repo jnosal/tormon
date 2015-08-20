@@ -10,6 +10,7 @@ from tornado.options import define, options
 from tornado.httpclient import AsyncHTTPClient
 
 import settings
+import environment
 from monitor import client
 from api import urls as api_urls
 from web import urls as web_urls
