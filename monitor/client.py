@@ -5,7 +5,7 @@ import time
 
 import tornado.gen
 from tornado import ioloop
-from tornado.httpclient import AsyncHTTPClient
+from tornado.httpclient import AsyncHTTPClient, HTTPError
 
 from . import exceptions
 from . import readers
@@ -104,11 +104,18 @@ class WebMonitor(IBaseMonitor):
     @tornado.gen.coroutine
     def monitor(self, url):
         logging.info(u"Sending request to: {}".format(url))
-        response = yield self.client.fetch(url, method='HEAD')
-        self.writer_instance.write(url=url, response=response)
+
+        try:
+            response = yield self.client.fetch(url, method='HEAD')
+            self.writer_instance.write(url=url, response=response)
+        except HTTPError as e:
+            logging.error(u"Error while accessing {}. Reason: {}".format(
+                url, str(e)
+            ))
 
         cb = lambda: self.monitor(url=url)
         deadline = time.time() + random.randint(0, 15)
+
         ioloop.IOLoop.instance().add_timeout(deadline=deadline, callback=cb)
 
     def stop(self, *args, **kwargs):
