@@ -1,4 +1,6 @@
 import abc
+import logging
+from itertools import izip
 from datetime import datetime
 
 import tornado.gen
@@ -75,29 +77,28 @@ class RedisWriter(IBaseWriter):
     KEY_PREFIX = u'tormon-'
 
     def __init__(self, *args, **kwargs):
-        import tornadoredis
-        self.r = tornadoredis.Client()
-        self.r.connect()
+        import redis
+        self.r = redis.StrictRedis()
 
     def key(self, base):
         return u"{}{}".format(self.KEY_PREFIX, base)
 
     @tornado.gen.coroutine
     def iter_data(self):
-        cursor = '0'
         match = u"{}*".format(self.KEY_PREFIX)
         count = None
-
         results = {}
 
-        while cursor != 0:
-            cursor, keys = yield tornado.gen.Task(
-                self.r.scan, cursor=cursor, count=count, match=match
-            )
-            for key in keys:
-                data = yield tornado.gen.Task(self.r.get, key)
-                json_data = utils.json_loads(data)
-                results[key.replace(self.KEY_PREFIX, u'')] = json_data
+        keys = [
+            key for
+            key in self.r.scan_iter(match=match, count=count)
+        ]
+
+        values = self.r.mget(keys)
+
+        keys = map(lambda x: x.replace(self.KEY_PREFIX, u''), keys)
+        values = map(lambda x: utils.json_loads(x), values)
+        results.update(dict(izip(keys, values)))
 
         raise tornado.gen.Return(results.iteritems())
 
@@ -105,12 +106,12 @@ class RedisWriter(IBaseWriter):
     def write(self, url, response):
         data = self.get_response_data(response=response)
         json_data = utils.json_dumps(data)
-        yield tornado.gen.Task(self.r.set, self.key(url), json_data)
+        self.r.set(self.key(url), json_data)
 
     @tornado.gen.coroutine
     def get_info(self, url):
         key = self.key(url)
-        data = yield tornado.gen.Task(self.r.get, key)
+        data = self.r.get(key)
         if not data:
             raise KeyError(u"Key: {} does not exist in db".format(key))
         raise tornado.gen.Return(utils.json_loads(data))
