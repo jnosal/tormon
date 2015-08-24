@@ -18,7 +18,7 @@ from web import urls as web_urls
 
 AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 
-BLOCKING_THRESHOLD = 0.5
+BLOCKING_THRESHOLD = 0.01
 define("reader", default="file", help="Name of reader that's used to provide urls")
 define("writer", default="memory", help="Name of writer that's persisting urls")
 define('filename', default=None, help="Path to file, required by file reader")

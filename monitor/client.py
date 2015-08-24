@@ -111,22 +111,18 @@ class WebMonitor(IBaseMonitor):
 
     @tornado.gen.coroutine
     def monitor(self, url):
-        logging.info(u"Sending request to: {}".format(url))
         now = time.time()
 
         with (yield self.sem.acquire()):
             try:
                 response = yield self.client.fetch(
                     url, method='HEAD',
-                    validate_cert=False,
                     request_timeout=REQUEST_TIMEOUT,
                     connect_timeout=CONNECT_TIMEOUT
                 )
                 self.writer_instance.write_response(url=url, response=response)
             except HTTPError as e:
-                logging.error(u"Error while accessing {}. Reason: {}".format(
-                    url, str(e)
-                ))
+                logging.error(u"[{}] {}".format(url, str(e)))
                 self.writer_instance.write_error(url=url, error=e)
 
             deadline = now + random.randint(5, 15)
