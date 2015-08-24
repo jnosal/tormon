@@ -4,17 +4,25 @@ import random
 import time
 
 import tornado.gen
-from tornado import ioloop
+import tornado.ioloop
+import tornado.locks
 from tornado.httpclient import AsyncHTTPClient, HTTPError
 
 from . import exceptions
 from . import readers
-from . import writers
 from . import utils
+from . import writers
+
+
+CONCURRENCY = 10
+HTTP_MAX_CLIENTS = 1000
+CONNECT_TIMEOUT = 10
+REQUEST_TIMEOUT = 1000
 
 
 class IBaseMonitor(object):
     __metaclass__ = abc.ABCMeta
+    sem = tornado.locks.Semaphore(CONCURRENCY)
 
     def __init__(self, *args, **kwargs):
         self.client = None
@@ -34,7 +42,7 @@ class IBaseMonitor(object):
         pass
 
     def get_client_instance(self):
-        return AsyncHTTPClient(max_clients=1000)
+        return AsyncHTTPClient(max_clients=HTTP_MAX_CLIENTS)
 
     @tornado.gen.coroutine
     def iter_urls(self, *args, **kwargs):
@@ -104,19 +112,30 @@ class WebMonitor(IBaseMonitor):
     @tornado.gen.coroutine
     def monitor(self, url):
         logging.info(u"Sending request to: {}".format(url))
+        now = time.time()
 
-        try:
-            response = yield self.client.fetch(url, method='HEAD')
-            self.writer_instance.write(url=url, response=response)
-        except HTTPError as e:
-            logging.error(u"Error while accessing {}. Reason: {}".format(
-                url, str(e)
-            ))
+        with (yield self.sem.acquire()):
+            try:
+                response = yield self.client.fetch(
+                    url, method='HEAD',
+                    validate_cert=False,
+                    request_timeout=REQUEST_TIMEOUT,
+                    connect_timeout=CONNECT_TIMEOUT
+                )
+                self.writer_instance.write_response(url=url, response=response)
+            except HTTPError as e:
+                logging.error(u"Error while accessing {}. Reason: {}".format(
+                    url, str(e)
+                ))
+                self.writer_instance.write_error(url=url, error=e)
 
-        cb = lambda: self.monitor(url=url)
-        deadline = time.time() + random.randint(0, 15)
+            deadline = now + random.randint(5, 15)
 
-        ioloop.IOLoop.instance().add_timeout(deadline=deadline, callback=cb)
+            callback = lambda: self.monitor(url=url)
+            tornado.ioloop.IOLoop.instance().add_timeout(
+                deadline=deadline,
+                callback=callback
+            )
 
     def stop(self, *args, **kwargs):
         pass
