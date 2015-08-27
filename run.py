@@ -18,13 +18,15 @@ from web import urls as web_urls
 
 AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 
-BLOCKING_THRESHOLD = 0.01
 define("reader", default="file", help="Name of reader that's used to provide urls")
 define("writer", default="memory", help="Name of writer that's persisting urls")
 define('filename', default=None, help="Path to file, required by file reader")
 define("host", default="localhost")
 define("port", default=8081, type=int)
 define("debug", default=True, type=bool)
+define("concurrency", default=0, type=int)
+
+BLOCKING_THRESHOLD = 0.2
 
 
 class MonitorWebApplication(tornado.web.Application):
@@ -55,6 +57,7 @@ if __name__ == '__main__':
     monitor = client.WebMonitor(
         reader=options['reader'],
         writer=options['writer'],
+        concurrency=options['concurrency'],
         filename=options['filename']
     )
     application = MonitorWebApplication(

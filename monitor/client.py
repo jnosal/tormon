@@ -14,7 +14,6 @@ from . import utils
 from . import writers
 
 
-CONCURRENCY = 10
 HTTP_MAX_CLIENTS = 1000
 CONNECT_TIMEOUT = 10
 REQUEST_TIMEOUT = 1000
@@ -22,12 +21,20 @@ REQUEST_TIMEOUT = 1000
 
 class IBaseMonitor(object):
     __metaclass__ = abc.ABCMeta
-    sem = tornado.locks.Semaphore(CONCURRENCY)
 
     def __init__(self, *args, **kwargs):
         self.client = None
+        self.primitive = None
         self.reader_instance = None
         self.writer_instance = None
+        self.concurrency = kwargs.get('concurrency', 0)
+
+        if self.concurrency:
+            logging.info(u"Concurrency set to {0}".format(self.concurrency))
+            self.primitive = self.get_concurrency_primitive()
+
+    def get_concurrency_primitive(self):
+        return tornado.locks.Semaphore(self.concurrency)
 
     @abc.abstractmethod
     def get_reader_instance(self):
@@ -110,28 +117,34 @@ class WebMonitor(IBaseMonitor):
             raise exceptions.ConfigurationException(msg)
 
     @tornado.gen.coroutine
-    def monitor(self, url):
+    def monitor_url(self, url):
         now = time.time()
-
-        with (yield self.sem.acquire()):
-            try:
-                response = yield self.client.fetch(
-                    url, method='HEAD',
-                    request_timeout=REQUEST_TIMEOUT,
-                    connect_timeout=CONNECT_TIMEOUT
-                )
-                self.writer_instance.write_response(url=url, response=response)
-            except HTTPError as e:
-                logging.error(u"[{}] {}".format(url, str(e)))
-                self.writer_instance.write_error(url=url, error=e)
-
-            deadline = now + random.randint(5, 15)
-
-            callback = lambda: self.monitor(url=url)
-            tornado.ioloop.IOLoop.instance().add_timeout(
-                deadline=deadline,
-                callback=callback
+        try:
+            response = yield self.client.fetch(
+                url, method='HEAD',
+                request_timeout=REQUEST_TIMEOUT,
+                connect_timeout=CONNECT_TIMEOUT
             )
+            self.writer_instance.write_response(url=url, response=response)
+        except HTTPError as e:
+            logging.error(u"[{}] {}".format(url, str(e)))
+            self.writer_instance.write_error(url=url, error=e)
+
+        deadline = now + random.randint(5, 15)
+
+        callback = lambda: self.monitor(url=url)
+        tornado.ioloop.IOLoop.instance().add_timeout(
+            deadline=deadline,
+            callback=callback
+        )
+
+    @tornado.gen.coroutine
+    def monitor(self, url):
+        if self.primitive:
+            with (yield self.primitive.acquire()):
+                self.monitor_url(url=url)
+        else:
+            self.monitor_url(url=url)
 
     def stop(self, *args, **kwargs):
         pass
