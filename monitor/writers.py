@@ -7,6 +7,11 @@ import tornado.gen
 from api import utils
 
 
+DEFAULT_TIMESTAMP = 0.0
+DEFAULT_STATUS_CODE = None
+DEFAULT_HEADER_SET = {}
+
+
 class IBaseWriter(object):
     __metaclass__ = abc.ABCMeta
 
@@ -46,9 +51,9 @@ class IBaseWriter(object):
         error_data = error.__dict__
 
         return {
-            'code': error_data.get('code', None),
-            'headers': error_data.get('headers', {}),
-            'time': error_data.get('request_time', None),
+            'code': error_data.get('code', DEFAULT_STATUS_CODE),
+            'headers': error_data.get('headers', DEFAULT_HEADER_SET),
+            'time': error_data.get('request_time', DEFAULT_TIMESTAMP),
             'updated_at': self.updated_at,
             'error': str(error)
         }
