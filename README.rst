@@ -8,7 +8,7 @@ As for now it supports file based url reader and persist information in memory.
 Manual
 ------------
 
-1. Clone project
+1. Install tormon
 
 .. code-block:: bash
 
@@ -28,3 +28,6 @@ Manual
     $ curl http://localhost:8081/api/urls/
     $ curl http://localhost:8081/api/stats/
     $ curl http://localhost:8081/api/url/\?url\=<url>
+
+
+4. Optionally You can install redis and hiredis
