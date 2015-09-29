@@ -4,7 +4,7 @@ from datetime import datetime
 
 import tornado.gen
 
-from api import utils
+from tormon.api import utils
 
 
 DEFAULT_TIMESTAMP = 0.0
@@ -41,21 +41,21 @@ class IBaseWriter(object):
 
     def get_response_data(self, response):
         return {
-            'code': response.code,
-            'time': response.request_time,
-            'headers': response.headers,
-            'updated_at': self.updated_at
+            u'code': response.code,
+            u'time': response.request_time,
+            u'headers': response.headers,
+            u'updated_at': self.updated_at
         }
 
     def get_error_data(self, error):
         error_data = error.__dict__
 
         return {
-            'code': error_data.get('code', DEFAULT_STATUS_CODE),
-            'headers': error_data.get('headers', DEFAULT_HEADER_SET),
-            'time': error_data.get('request_time', DEFAULT_TIMESTAMP),
-            'updated_at': self.updated_at,
-            'error': str(error)
+            u'code': error_data.get(u'code', DEFAULT_STATUS_CODE),
+            u'headers': error_data.get(u'headers', DEFAULT_HEADER_SET),
+            u'time': error_data.get(u'request_time', DEFAULT_TIMESTAMP),
+            u'updated_at': self.updated_at,
+            u'error': str(error)
         }
 
 
@@ -90,8 +90,8 @@ class MemoryWriter(IBaseWriter):
         ]
 
         stats = {
-            'total_monitored': len(urls),
-            'urls': urls
+            u'total_monitored': len(urls),
+            u'urls': urls
         }
         raise tornado.gen.Return(stats)
 
@@ -153,7 +153,7 @@ class RedisWriter(IBaseWriter):
         ]
 
         stats = {
-            'total_monitored': len(urls),
-            'urls': urls
+            u'total_monitored': len(urls),
+            u'urls': urls
         }
         raise tornado.gen.Return(stats)
