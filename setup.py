@@ -1,11 +1,13 @@
 from setuptools import setup, find_packages
 
 requires = [
-    'pycurl==7.19.5.1',
-    'tornado==4.2.1'
+    'tornado>=4.2'
 ]
 
 test_requires = [
+    'mock>=1.0',
+    'nose',
+    'coverage'
 ]
 
 

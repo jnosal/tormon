@@ -14,6 +14,7 @@ from . import utils
 from . import writers
 
 
+DEFAULT_HEALTHCHECK_HTTP_METHOD = u'HEAD'
 HTTP_MAX_CLIENTS = 1000
 CONNECT_TIMEOUT = 10
 REQUEST_TIMEOUT = 1000
@@ -118,7 +119,7 @@ class WebMonitor(IBaseMonitor):
         now = time.time()
         try:
             response = yield self.client.fetch(
-                url, method=u'HEAD',
+                url, method=DEFAULT_HEALTHCHECK_HTTP_METHOD,
                 request_timeout=REQUEST_TIMEOUT,
                 connect_timeout=CONNECT_TIMEOUT
             )
@@ -128,15 +129,15 @@ class WebMonitor(IBaseMonitor):
             self.writer_instance.write_error(url=url, error=e)
 
         deadline = now + random.randint(5, 15)
-
-        callback = lambda: self.monitor(url=url)
         tornado.ioloop.IOLoop.instance().add_timeout(
             deadline=deadline,
-            callback=callback
+            callback=lambda: self.monitor(url=url)
         )
 
     @tornado.gen.coroutine
     def monitor(self, url):
+        logging.debug(u"Healthchecking: {0}".format(url))
+
         if self.primitive:
             with (yield self.primitive.acquire()):
                 self.monitor_url(url=url)
