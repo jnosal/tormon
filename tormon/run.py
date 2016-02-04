@@ -8,6 +8,7 @@ from tornado.httpserver import HTTPServer
 from tornado.options import define, options
 from tornado.httpclient import AsyncHTTPClient
 
+from tormon import core
 from tormon.core import utils
 
 root = lambda *x: os.path.join(os.path.dirname(__file__), u'../', *x)
@@ -23,9 +24,13 @@ except ImportError:
 
 define(u'app', default=u'', type=str, help=u'Pusher application to run')
 define(u'monitor', default=u'', type=str, help=u'Pusher application to run')
-define(u"reader", default=u"file", help=u"Name of reader that's used to provide urls")
 define(u"writer", default=u"memory", help=u"Name of writer that's persisting urls")
-define(u'filename', default=None, help=u"Path to file, required by file reader")
+define(
+    u"reader",
+    default=u"config",
+    help=u"Name reader for getting urls (by default, they're taken from config file)."
+)
+define(u'config', type=str, default=None, help=u'Path to yaml file')
 define(u"host", default=u"localhost")
 define(u"port", default=8081, type=int)
 define(u"debug", default=True, type=bool)
@@ -47,13 +52,20 @@ def setup_monitor():
     return MonitorClass(
         reader=options[u'reader'],
         writer=options[u'writer'],
-        concurrency=options[u'concurrency'],
-        filename=options[u'filename'],
+        concurrency=options[u'concurrency']
     )
+
+
+def validate_options():
+    if not options[u'config']:
+        logging.error(u"Config is missing")
+        sys.exit(1)
 
 
 def main():
     options.parse_command_line()
+    validate_options()
+    core.settings.import_config(options[u'config'])
 
     monitor = setup_monitor()
     application = setup_application(monitor_instance=monitor)

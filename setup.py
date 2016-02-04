@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 
 requires = [
-    'tornado>=4.2'
+    'tornado>=4.2',
+    'kaptan==0.5.8'
 ]
 
 test_requires = [

@@ -20,6 +20,7 @@ CONNECT_TIMEOUT = 10
 REQUEST_TIMEOUT = 1000
 
 READER_MAP = {
+    utils.CONFIG_READER: readers.ConfigReader,
     utils.FILE_READER: readers.TextFileReader,
 }
 
@@ -32,7 +33,8 @@ WRITER_MAP = {
 class IBaseMonitor(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, reader=u'file', writer=u'memory', *args, **kwargs):
+    def __init__(self, reader=utils.CONFIG_READER, writer=utils.MEMORY_WRITER,
+                 *args, **kwargs):
         self.reader = reader
         self.writer = writer
         self.client = None
@@ -50,9 +52,14 @@ class IBaseMonitor(object):
         try:
             ReaderClass = self.reader_map[self.reader]
             return ReaderClass(**self.kwargs)
-        except KeyError:
+        except KeyError as e:
             msg = u"Inappropriate reader. Allowed: {0}".format(
                 u", ".join(self.reader_map.iterkeys())
+            )
+            raise exceptions.ConfigurationException(msg)
+        except AttributeError as e:
+            msg = u"Inappropriate params. Allowed: {0}".format(
+                str(e)
             )
             raise exceptions.ConfigurationException(msg)
 
@@ -62,7 +69,7 @@ class IBaseMonitor(object):
             return WriterClass(**self.kwargs)
         except KeyError:
             msg = u"Inappropriate writer. Allowed: {0}".format(
-                u", ".join(self.reader_map.iterkeys())
+                u", ".join(self.writer_map.iterkeys())
             )
             raise exceptions.ConfigurationException(msg)
 

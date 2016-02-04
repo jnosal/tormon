@@ -1,4 +1,5 @@
 import abc
+import logging
 from itertools import izip
 from datetime import datetime
 
@@ -40,6 +41,10 @@ class IBaseWriter(object):
         return datetime.now()
 
     def get_response_data(self, response):
+        logging.debug(u"{0} response time: {1}s".format(
+            response.request.url, u"%.2f" % response.request_time
+        ))
+
         return {
             u'code': response.code,
             u'time': response.request_time,
