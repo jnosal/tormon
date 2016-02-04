@@ -19,7 +19,7 @@ Manual
 
 .. code-block:: bash
 
-    $ tor-mon --host=0.0.0.0 --port=8081 --filename=/tmp/urls.txt --debug=true
+    $ tor-mon --host=0.0.0.0 --port=8081 --config=/tmp/config.yml --debug=true
 
 3. Query api to get information:
 
