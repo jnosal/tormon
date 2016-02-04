@@ -33,7 +33,7 @@ define(
 define(u'config', type=str, default=None, help=u'Path to yaml file')
 define(u"host", default=u"localhost")
 define(u"port", default=8081, type=int)
-define(u"debug", default=True, type=bool)
+define(u"debug", default=False, type=bool)
 define(u"concurrency", default=0, type=int)
 
 

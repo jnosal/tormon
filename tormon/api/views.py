@@ -34,7 +34,7 @@ class UrlsListHandler(BaseApiHandler):
 
     @tornado.gen.coroutine
     def get(self, *args, **kwargs):
-        data = yield self.application.monitor.iter_urls()
+        data = yield self.application.monitor.iter_resources()
         objects = [
             dict(url=url, response=response)
             for url, response

@@ -17,11 +17,11 @@ from . import writers
 DEFAULT_HEALTHCHECK_HTTP_METHOD = u'HEAD'
 HTTP_MAX_CLIENTS = 1000
 CONNECT_TIMEOUT = 10
+RANDOM_RANGE = (1, 2)
 REQUEST_TIMEOUT = 1000
 
 READER_MAP = {
-    utils.CONFIG_READER: readers.ConfigReader,
-    utils.FILE_READER: readers.TextFileReader,
+    utils.CONFIG_READER: readers.ConfigReader
 }
 
 WRITER_MAP = {
@@ -83,14 +83,14 @@ class IBaseMonitor(object):
         self.client = self.get_client_instance()
 
     @abc.abstractmethod
-    def monitor(self, url):
+    def monitor(self, resource):
         pass
 
     def get_client_instance(self):
         return AsyncHTTPClient(max_clients=HTTP_MAX_CLIENTS)
 
     @tornado.gen.coroutine
-    def iter_urls(self, *args, **kwargs):
+    def iter_resources(self, *args, **kwargs):
         data = yield tornado.gen.Task(self.writer_instance.iter_data)
         raise tornado.gen.Return(data)
 
@@ -107,9 +107,9 @@ class IBaseMonitor(object):
     def start(self, *args, **kwargs):
         self.setup()
 
-        for url in self.reader_instance.read():
-            logging.info(u'{} - starting monitoring'.format(url))
-            self.monitor(url=url)
+        for resource in self.reader_instance.read():
+            logging.info(u'{} - starting monitoring'.format(resource))
+            self.monitor(resource=resource)
 
     def stop(self, *args, **kwargs):
         logging.info(u"Stopping {}.".format(self.__class__.__name__))
@@ -122,31 +122,37 @@ class WebMonitor(IBaseMonitor):
         self.kwargs = kwargs
 
     @tornado.gen.coroutine
-    def monitor_url(self, url):
+    def monitor_resource(self, resource):
         now = time.time()
         try:
             response = yield self.client.fetch(
-                url, method=DEFAULT_HEALTHCHECK_HTTP_METHOD,
+                resource.url,
+                method=DEFAULT_HEALTHCHECK_HTTP_METHOD,
                 request_timeout=REQUEST_TIMEOUT,
                 connect_timeout=CONNECT_TIMEOUT
             )
-            self.writer_instance.write_response(url=url, response=response)
+            self.writer_instance.write_response(
+                resource=resource,
+                response=response
+            )
         except HTTPError as e:
-            logging.error(u"[{}] {}".format(url, str(e)))
-            self.writer_instance.write_error(url=url, error=e)
+            logging.error(u"[{}] {}".format(resource, str(e)))
+            self.writer_instance.write_error(
+                resource=resource, error=e
+            )
 
-        deadline = now + random.randint(5, 15)
+        deadline = now + random.randint(*RANDOM_RANGE)
         tornado.ioloop.IOLoop.instance().add_timeout(
             deadline=deadline,
-            callback=lambda: self.monitor(url=url)
+            callback=lambda: self.monitor(resource=resource)
         )
 
     @tornado.gen.coroutine
-    def monitor(self, url):
-        logging.debug(u"Healthchecking: {0}".format(url))
+    def monitor(self, resource):
+        logging.debug(u"Healthchecking: {0}".format(resource))
 
         if self.primitive:
             with (yield self.primitive.acquire()):
-                self.monitor_url(url=url)
+                self.monitor_resource(resource=resource)
         else:
-            self.monitor_url(url=url)
+            self.monitor_resource(resource=resource)

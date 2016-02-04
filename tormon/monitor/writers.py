@@ -21,11 +21,11 @@ class IBaseWriter(object):
         pass
 
     @abc.abstractmethod
-    def write_response(self, url, response):
+    def write_response(self, resource, response):
         pass
 
     @abc.abstractmethod
-    def write_error(self, url, error):
+    def write_error(self, resource, error):
         pass
 
     @abc.abstractmethod
@@ -69,13 +69,13 @@ class MemoryWriter(IBaseWriter):
     def __init__(self, *args, **kwargs):
         self.url_status = {}
 
-    def write_response(self, url, response):
+    def write_response(self, resource, response):
         data = self.get_response_data(response=response)
-        self.url_status[url] = data
+        self.url_status[resource.url] = data
 
-    def write_error(self, url, error):
+    def write_error(self, resource, error):
         data = self.get_error_data(error=error)
-        self.url_status[url] = data
+        self.url_status[resource.url] = data
 
     @tornado.gen.coroutine
     def iter_data(self):
@@ -131,16 +131,16 @@ class RedisWriter(IBaseWriter):
         raise tornado.gen.Return(results.iteritems())
 
     @tornado.gen.coroutine
-    def write_response(self, url, response):
+    def write_response(self, resource, response):
         data = self.get_response_data(response=response)
         json_data = utils.json_dumps(data)
-        self.r.set(self.key(url), json_data)
+        self.r.set(self.key(resource.url), json_data)
 
     @tornado.gen.coroutine
-    def write_error(self, url, error):
+    def write_error(self, resource, error):
         data = self.get_error_data(error=error)
         json_data = utils.json_dumps(data)
-        self.r.set(self.key(url), json_data)
+        self.r.set(self.key(resource.url), json_data)
 
     @tornado.gen.coroutine
     def get_info(self, url):
