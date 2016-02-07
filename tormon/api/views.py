@@ -10,13 +10,13 @@ class BaseApiHandler(tornado.web.RequestHandler):
         if code != 200:
             # if something went wrong, we include returned HTTP code in the
             # JSON response
-            data['status'] = code
+            data[u'status'] = code
 
-        self.write(utils.json_dumps(data) + "\n")
+        self.write(utils.json_dumps(data) + u"\n")
         self.set_status(code)
 
     def error(self, message, code=500):
-        self.response({'message': message}, code)
+        self.response({u'message': message}, code)
 
     def options(self, *args, **kwargs):
         pass
@@ -27,7 +27,7 @@ class StatsHandler(BaseApiHandler):
     @tornado.gen.coroutine
     def get(self, *args, **kwargs):
         stats = yield self.application.monitor.get_stats()
-        self.response({'stats': stats}, 200)
+        self.response({u'stats': stats}, 200)
 
 
 class UrlsListHandler(BaseApiHandler):
@@ -40,7 +40,7 @@ class UrlsListHandler(BaseApiHandler):
             for url, response
             in data
         ]
-        self.response({'objects': objects}, 200)
+        self.response({u'objects': objects}, 200)
 
 
 class UrlDetailsHandler(BaseApiHandler):
@@ -51,10 +51,10 @@ class UrlDetailsHandler(BaseApiHandler):
 
         try:
             info = yield self.application.monitor.get_info(url)
-            self.response({'response': info}, 200)
+            self.response({u'response': info}, 200)
         except KeyError:
             error = (
                 u"Url: {} is not monitored. Perhaps slash is missing"
                 u" or is redundant."
             ).format(url)
-            self.response({'error': error}, 400)
+            self.response({u'error': error}, 400)

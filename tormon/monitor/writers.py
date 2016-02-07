@@ -6,6 +6,7 @@ from datetime import datetime
 import tornado.gen
 
 from tormon.api import utils
+from tormon.models import Response, RequestError
 
 
 DEFAULT_TIMESTAMP = 0.0
@@ -45,23 +46,21 @@ class IBaseWriter(object):
             response.request.url, u"%.2f" % response.request_time
         ))
 
-        return {
-            u'code': response.code,
-            u'time': response.request_time,
-            u'headers': response.headers,
-            u'updated_at': self.updated_at
-        }
+        return Response(
+            code=response.code, request_time=response.request_time,
+            headers=dict(response.headers), updated_at=self.updated_at
+        )
 
     def get_error_data(self, error):
         error_data = error.__dict__
 
-        return {
-            u'code': error_data.get(u'code', DEFAULT_STATUS_CODE),
-            u'headers': error_data.get(u'headers', DEFAULT_HEADER_SET),
-            u'time': error_data.get(u'request_time', DEFAULT_TIMESTAMP),
-            u'updated_at': self.updated_at,
-            u'error': str(error)
-        }
+        return RequestError(
+            code=error_data.get(u'code', DEFAULT_STATUS_CODE),
+            headers=dict(error_data.get(u'headers', DEFAULT_HEADER_SET)),
+            request_time=error_data.get(u'request_time', DEFAULT_TIMESTAMP),
+            updated_at=self.updated_at,
+            message=str(error)
+        )
 
 
 class MemoryWriter(IBaseWriter):
@@ -70,12 +69,12 @@ class MemoryWriter(IBaseWriter):
         self.url_status = {}
 
     def write_response(self, resource, response):
-        data = self.get_response_data(response=response)
-        self.url_status[resource.url] = data
+        response_data = self.get_response_data(response=response)
+        self.url_status[resource.url] = response_data.as_dict()
 
     def write_error(self, resource, error):
-        data = self.get_error_data(error=error)
-        self.url_status[resource.url] = data
+        error_data = self.get_error_data(error=error)
+        self.url_status[resource.url] = error_data.as_dict()
 
     @tornado.gen.coroutine
     def iter_data(self):
@@ -132,14 +131,14 @@ class RedisWriter(IBaseWriter):
 
     @tornado.gen.coroutine
     def write_response(self, resource, response):
-        data = self.get_response_data(response=response)
-        json_data = utils.json_dumps(data)
+        response_data = self.get_response_data(response=response)
+        json_data = utils.json_dumps(response_data.as_dict())
         self.r.set(self.key(resource.url), json_data)
 
     @tornado.gen.coroutine
     def write_error(self, resource, error):
-        data = self.get_error_data(error=error)
-        json_data = utils.json_dumps(data)
+        error_data = self.get_error_data(error=error)
+        json_data = utils.json_dumps(error_data.as_dict())
         self.r.set(self.key(resource.url), json_data)
 
     @tornado.gen.coroutine

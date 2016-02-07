@@ -30,6 +30,7 @@ define(
     default=u"config",
     help=u"Name reader for getting urls (by default, they're taken from config file)."
 )
+define(u'handler', default=u'log', help=u"Name of handler in case resource is failing")
 define(u'config', type=str, default=None, help=u'Path to yaml file')
 define(u"host", default=u"localhost")
 define(u"port", default=8081, type=int)
@@ -87,5 +88,5 @@ def main():
     IOLoop.instance().start()
 
 
-if __name__ == '__main__':
+if __name__ == u'__main__':
     main()

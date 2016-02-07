@@ -15,7 +15,7 @@ def load_app(name, default=None):
 
 
 def load_monitor(name, default=None):
-    default = default or client.WebMonitor
+    default = default or client.HealthCheckMonitor
     return load_component(name, default)
 
 

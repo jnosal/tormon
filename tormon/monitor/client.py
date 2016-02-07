@@ -115,10 +115,10 @@ class IBaseMonitor(object):
         logging.info(u"Stopping {}.".format(self.__class__.__name__))
 
 
-class WebMonitor(IBaseMonitor):
+class HealthCheckMonitor(IBaseMonitor):
 
     def __init__(self, *args, **kwargs):
-        super(WebMonitor, self).__init__(*args, **kwargs)
+        super(HealthCheckMonitor, self).__init__(*args, **kwargs)
         self.kwargs = kwargs
 
     @tornado.gen.coroutine
