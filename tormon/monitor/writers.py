@@ -42,8 +42,9 @@ class IBaseWriter(object):
         return datetime.now()
 
     def get_response_data(self, response):
-        logging.debug(u"{0} response time: {1}s".format(
-            response.request.url, u"%.2f" % response.request_time
+        logging.debug(u"[{0}] Code: {1} Time: {2}s".format(
+            response.request.url, response.code,
+            u"%.2f" % response.request_time
         ))
 
         return Response(
@@ -51,8 +52,9 @@ class IBaseWriter(object):
             headers=dict(response.headers), updated_at=self.updated_at
         )
 
-    def get_error_data(self, error):
+    def get_error_data(self, resource, error):
         error_data = error.__dict__
+        logging.error(u"[{}] {}".format(resource, str(error)))
 
         return RequestError(
             code=error_data.get(u'code', DEFAULT_STATUS_CODE),
@@ -73,7 +75,10 @@ class MemoryWriter(IBaseWriter):
         self.url_status[resource.url] = response_data.as_dict()
 
     def write_error(self, resource, error):
-        error_data = self.get_error_data(error=error)
+        error_data = self.get_error_data(
+            resource=resource,
+            error=error
+        )
         self.url_status[resource.url] = error_data.as_dict()
 
     @tornado.gen.coroutine
@@ -137,7 +142,10 @@ class RedisWriter(IBaseWriter):
 
     @tornado.gen.coroutine
     def write_error(self, resource, error):
-        error_data = self.get_error_data(error=error)
+        error_data = self.get_error_data(
+            resource=resource,
+            error=error
+        )
         json_data = utils.json_dumps(error_data.as_dict())
         self.r.set(self.key(resource.url), json_data)
 

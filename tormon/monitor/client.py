@@ -124,6 +124,7 @@ class HealthCheckMonitor(IBaseMonitor):
     @tornado.gen.coroutine
     def monitor_resource(self, resource):
         now = time.time()
+
         try:
             response = yield self.client.fetch(
                 resource.url,
@@ -136,7 +137,6 @@ class HealthCheckMonitor(IBaseMonitor):
                 response=response
             )
         except HTTPError as e:
-            logging.error(u"[{}] {}".format(resource, str(e)))
             self.writer_instance.write_error(
                 resource=resource, error=e
             )
@@ -149,7 +149,7 @@ class HealthCheckMonitor(IBaseMonitor):
 
     @tornado.gen.coroutine
     def monitor(self, resource):
-        logging.debug(u"Healthchecking: {0}".format(resource))
+        logging.debug(u"[{0}] - Healthchecking".format(resource))
 
         if self.primitive:
             with (yield self.primitive.acquire()):
