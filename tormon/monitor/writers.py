@@ -17,6 +17,11 @@ DEFAULT_HEADER_SET = {}
 class IBaseWriter(object):
     __metaclass__ = abc.ABCMeta
 
+    def __init__(self, *args, **kwargs):
+        logging.info(u'Initializing writer: {0}'.format(
+            self.__class__.__name__
+        ))
+
     @abc.abstractmethod
     def iter_data(self):
         pass
@@ -68,6 +73,7 @@ class IBaseWriter(object):
 class MemoryWriter(IBaseWriter):
 
     def __init__(self, *args, **kwargs):
+        super(MemoryWriter, self).__init__(*args, **kwargs)
         self.url_status = {}
 
     def write_response(self, resource, response):
@@ -109,6 +115,7 @@ class RedisWriter(IBaseWriter):
     KEY_PREFIX = u'tormon-'
 
     def __init__(self, *args, **kwargs):
+        super(RedisWriter, self).__init__(*args, **kwargs)
         import redis
         self.r = redis.StrictRedis()
 

@@ -9,8 +9,8 @@ import tornado.locks
 from tornado.httpclient import AsyncHTTPClient, HTTPError
 
 from . import exceptions
+from . import handlers
 from . import readers
-from . import utils
 from . import writers
 
 
@@ -20,30 +20,48 @@ CONNECT_TIMEOUT = 10
 RANDOM_RANGE = (1, 2)
 REQUEST_TIMEOUT = 1000
 
+HANDLER_LOG = u'log'
+HANDLER_EMAIL = u'email'
+HANDLER_API_CALL = u'api-call'
+READER_CONFIG = u'config'
+WRITER_MEMORY = u'memory'
+WRITER_REDIS = u'redis'
+
+
 READER_MAP = {
-    utils.CONFIG_READER: readers.ConfigReader
+    READER_CONFIG: readers.ConfigReader
 }
 
 WRITER_MAP = {
-    utils.MEMORY_WRITER: writers.MemoryWriter,
-    utils.REDIS_WRITER: writers.RedisWriter
+    WRITER_MEMORY: writers.MemoryWriter,
+    WRITER_REDIS: writers.RedisWriter
+}
+
+HANDLER_MAP = {
+    HANDLER_API_CALL: handlers.ApiCallHandler,
+    HANDLER_LOG: handlers.LogHandler,
+    HANDLER_EMAIL: handlers.SmtpHandler
 }
 
 
 class IBaseMonitor(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, reader=utils.CONFIG_READER, writer=utils.MEMORY_WRITER,
-                 *args, **kwargs):
+    def __init__(self, reader=READER_CONFIG, writer=WRITER_MEMORY,
+                 handler=HANDLER_LOG, *args, **kwargs):
         self.reader = reader
         self.writer = writer
+        self.handler = handler
         self.client = None
         self.primitive = None
         self.reader_instance = None
         self.writer_instance = None
+        self.handler_instance = None
         self.concurrency = kwargs.get(u'concurrency', 0)
         self.reader_map = kwargs.get(u'reader_map', READER_MAP)
         self.writer_map = kwargs.get(u'writer_map', WRITER_MAP)
+        self.handler_map = kwargs.get(u'handler_map', HANDLER_MAP)
+        self.kwargs = kwargs
 
     def get_concurrency_primitive(self):
         return tornado.locks.Semaphore(self.concurrency)
@@ -73,6 +91,16 @@ class IBaseMonitor(object):
             )
             raise exceptions.ConfigurationException(msg)
 
+    def get_handler_instance(self):
+        try:
+            HandlerClass = self.handler_map[self.handler]
+            return HandlerClass(**self.kwargs)
+        except KeyError:
+            msg = u"Inappropriate handler. Allowed: {0}".format(
+                u", ".join(self.handler_map.iterkeys())
+            )
+            raise exceptions.ConfigurationException(msg)
+
     def setup(self):
         if self.concurrency:
             logging.info(u"Concurrency set to {0}".format(self.concurrency))
@@ -80,6 +108,7 @@ class IBaseMonitor(object):
 
         self.reader_instance = self.get_reader_instance()
         self.writer_instance = self.get_writer_instance()
+        self.handler_instance = self.get_handler_instance()
         self.client = self.get_client_instance()
 
     @abc.abstractmethod

@@ -24,7 +24,7 @@ except ImportError:
 
 define(u'app', default=u'', type=str, help=u'Pusher application to run')
 define(u'monitor', default=u'', type=str, help=u'Pusher application to run')
-define(u"writer", default=u"memory", help=u"Name of writer that's persisting urls")
+define(u"writer", default=u'memory', help=u"Name of writer that's persisting urls")
 define(
     u"reader",
     default=u"config",
@@ -53,6 +53,7 @@ def setup_monitor():
     return MonitorClass(
         reader=options[u'reader'],
         writer=options[u'writer'],
+        handler=options[u'handler'],
         concurrency=options[u'concurrency']
     )
 

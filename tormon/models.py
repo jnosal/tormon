@@ -1,8 +1,7 @@
 def resources_from_dicts(data):
     for el in data:
         instance = Resource(
-            url=el[u'url'],
-            strategy=el.get(u'strategy')
+            url=el[u'url']
         )
         yield instance
 
