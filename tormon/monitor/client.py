@@ -46,6 +46,7 @@ HANDLER_MAP = {
 
 class IBaseMonitor(object):
     __metaclass__ = abc.ABCMeta
+    LOG_INFO = u"[{0}]"
 
     def __init__(self, reader=READER_CONFIG, writer=WRITER_MEMORY,
                  handler=HANDLER_LOG, *args, **kwargs):
@@ -111,10 +112,6 @@ class IBaseMonitor(object):
         self.handler_instance = self.get_handler_instance()
         self.client = self.get_client_instance()
 
-    @abc.abstractmethod
-    def monitor(self, resource):
-        pass
-
     def get_client_instance(self):
         return AsyncHTTPClient(max_clients=HTTP_MAX_CLIENTS)
 
@@ -143,17 +140,41 @@ class IBaseMonitor(object):
     def stop(self, *args, **kwargs):
         logging.info(u"Stopping {}.".format(self.__class__.__name__))
 
+    def _reschedule_monitor(self, resource):
+        deadline = time.time() + random.randint(*RANDOM_RANGE)
+        tornado.ioloop.IOLoop.instance().add_timeout(
+            deadline=deadline,
+            callback=lambda: self.monitor(resource=resource)
+        )
+
+    @tornado.gen.coroutine
+    def monitor(self, resource):
+        """
+        Should be called periodically by monitor_resource_handler
+        See HealthcheckMonitor
+        """
+        logging.debug(self.LOG_INFO.format(resource))
+
+        if self.primitive:
+            with (yield self.primitive.acquire()):
+                self.monitor_resource_handler(resource=resource)
+        else:
+            self.monitor_resource_handler(resource=resource)
+
+    @abc.abstractmethod
+    def monitor_resource_handler(self, resource):
+        pass
+
 
 class HealthCheckMonitor(IBaseMonitor):
+    LOG_INFO = u"[{0}] - Healthchecking"
 
     def __init__(self, *args, **kwargs):
         super(HealthCheckMonitor, self).__init__(*args, **kwargs)
         self.kwargs = kwargs
 
     @tornado.gen.coroutine
-    def monitor_resource(self, resource):
-        now = time.time()
-
+    def monitor_resource_handler(self, resource):
         try:
             response = yield self.client.fetch(
                 resource.url,
@@ -170,18 +191,17 @@ class HealthCheckMonitor(IBaseMonitor):
                 resource=resource, error=e
             )
 
-        deadline = now + random.randint(*RANDOM_RANGE)
-        tornado.ioloop.IOLoop.instance().add_timeout(
-            deadline=deadline,
-            callback=lambda: self.monitor(resource=resource)
-        )
+        self._reschedule_monitor(resource)
+
+
+class SmokeTestMonitor(IBaseMonitor):
+    LOG_INFO = u"[{0}] - Smoketesting"
+
+    def __init__(self, *args, **kwargs):
+        super(SmokeTestMonitor, self).__init__(*args, **kwargs)
+        self.kwargs = kwargs
 
     @tornado.gen.coroutine
-    def monitor(self, resource):
-        logging.debug(u"[{0}] - Healthchecking".format(resource))
+    def monitor_resource_handler(self, resource):
+        self._reschedule_monitor(resource)
 
-        if self.primitive:
-            with (yield self.primitive.acquire()):
-                self.monitor_resource(resource=resource)
-        else:
-            self.monitor_resource(resource=resource)
