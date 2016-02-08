@@ -21,7 +21,15 @@ Manual
 
     $ tor-mon --host=0.0.0.0 --port=8081 --config=/tmp/config.yml --debug=true
 
-3. Query api to get information:
+
+3. Run tormon using redis as a storage (requires redis-py or/and hiredis)
+
+.. code-block:: bash
+
+    $ tor-mon --host=0.0.0.0 --port=8081 --config=/tmp/config.yml --debug=true --writer=redis
+
+
+4. Query api to get information:
 
 .. code-block:: bash
 
@@ -30,4 +38,4 @@ Manual
     $ curl http://localhost:8081/api/url/\?url\=<url>
 
 
-4. Optionally You can install redis and hiredis
+5. Optionally You can install redis and hiredis
